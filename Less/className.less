@@ -1,0 +1,93 @@
+  /*flex*/
+  .flex{
+    display: flex!important;
+  }
+  .columnFlex{
+    display: flex!important;
+    flex-direction: column;
+  }
+  .flexStart{
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+  }
+  .flexCenter{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .flexBetweenCenter{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .flexStartCenter{
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+  }
+  
+  /*ellipsis*/
+  .textEllipsis{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .relative{
+    position: relative;
+  }
+  
+  /* margin */
+  // 混入 生成（未用到）
+  .mb(@px) {
+    margin-bottom: @px px !important;
+  }
+  .mb1{
+    .mb(1)
+  }
+  
+  //生成margin数值
+  each(range(50), {
+    .mt@{value} {
+      margin-top: (@value * 1px)!important;
+    }
+  });
+  each(range(50), {
+    .mr@{value} {
+      margin-right: (@value * 1px)!important;
+    }
+  });
+  each(range(50), {
+    .mb@{value} {
+      margin-bottom: (@value * 1px)!important;
+    }
+  });
+  each(range(50), {
+    .ml@{value} {
+      margin-left: (@value * 1px)!important;
+    }
+  });
+  
+  /* padding */
+  //生成padding数值
+  each(range(0, 50), {
+    .pt@{value} {
+      padding-top: (@value * 1px)!important;
+    }
+  });
+  each(range(0, 50), {
+    .pr@{value} {
+      padding-right: (@value * 1px)!important;
+    }
+  });
+  each(range(0, 50), {
+    .pb@{value} {
+      padding-bottom: (@value * 1px)!important;
+    }
+  });
+  each(range(0, 50), {
+    .pl@{value} {
+      padding-left: (@value * 1px)!important;
+    }
+  });
