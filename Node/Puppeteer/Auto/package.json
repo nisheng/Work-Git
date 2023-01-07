@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "rm -rf assets && node mergeCode.js"
+    "dev": "rm -rf assets && node mergeCode.js",
+    "dev1": "rm -rf assets && node 内网登录.js"
   },
   "author": "",
   "license": "ISC",
