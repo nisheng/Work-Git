@@ -1,3 +1,11 @@
+/**
+ * 
+ * 
+ * 参考链接： https://juejin.cn/post/7028404512259833869#comment
+ *          https://github.com/wxsms/daily-signer/blob/master/src/modules/jd/auth/WebAuth.ts
+ * 
+ */
+
 const { createCanvas, loadImage } = require('./Tools/Node-canvas/lib/index')
 const puppeteer = require('puppeteer');
 const path = require('path');
