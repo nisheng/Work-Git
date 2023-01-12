@@ -1,0 +1,40 @@
+
+谷歌：
+谷歌授权登录提供方设置：
+https://console.firebase.google.com/project/crewing-online-app/authentication/providers
+
+谷歌应用配置管理：
+https://console.developers.google.com/
+
+谷歌开发者账号：
+
+
+脸书：
+Facebook 开发者平台：
+https://developers.facebook.com/
+
+登录的账号密码：
+
+
+获取配置信息网址：
+https://developers.facebook.com/apps/481364469512513/settings/advanced/
+
+
+SDK参数说明：
+https://developers.facebook.com/docs/graph-api/overview
+
+
+苹果：
+网址：https://developer.apple.com/cn/
+
+
+facebook : 配置方法需要设置域名步骤
+    1.https://developers.facebook.com/apps/481364469512513/fb-login/settings/
+
+
+google: 
+    https://developers.google.com/identity/gsi/web/guides/choose-components
+    https://console.cloud.google.com/apis/credentials?project=web-dev-370406
+
+apple: https://juejin.cn/post/6844903976278704142 
+https://developer.apple.com/account/resources/identifiers/serviceId/edit/7XZMJ9DTTU
