@@ -1,0 +1,630 @@
+    pipeline {
+        agent {
+            node {
+                label 'mol-web'
+            }
+        }
+        stages {
+            stage('Build-common'){
+                when {
+                   beforeAgent true
+                   not {
+                         environment name: 'GIT_BRANCH', value: 'origin/prod'
+                   }
+                    not {
+                         environment name: 'GIT_BRANCH', value: 'origin/staging'
+                   }
+                }
+                agent {
+                    docker {
+                        image 'registry.pm.emarineonline.com/bmo/drone-node:16.13.1'
+                        reuseNode true
+                    }
+                }
+                steps {
+                     sh "echo global._version=`date +%Y%m%d%H%M` > src/version.js"
+                     sh "/npm_auth"
+                     sh "rm -f yarn.lock"
+                     sh "yarn config set phantomjs_cdnurl http://cnpmjs.org/downloads"
+                     sh "yarn install --production=false"
+                     sh "yarn config set strict-ssl ''"
+                     sh "CI='' yarn build:DEV"
+                }
+            }
+            stage('Build-staging') {
+                when {
+                    beforeAgent true
+                    anyOf{
+                         environment name: 'GIT_BRANCH', value: 'origin/staging'
+                    }
+                }
+                agent {
+                    docker {
+                        image 'registry.pm.emarineonline.com/bmo/drone-node:16.13.1'
+                        reuseNode true
+                    }
+                }
+                steps {
+                    sh "echo global._version=`date +%Y%m%d%H%M` > src/version.js"
+                    sh "/npm_auth"
+					sh "rm -f yarn.lock"
+                    sh "yarn config set phantomjs_cdnurl http://cnpmjs.org/downloads"
+                    sh "yarn install --production=false"
+                    sh "yarn config set strict-ssl ''"
+                    sh "CI='' yarn build:DEV"
+                }
+            }
+            stage('Build-prod') {
+                when {
+                    beforeAgent true
+                    anyOf{
+                         environment name: 'GIT_BRANCH', value: 'origin/prod'
+                    }
+                }
+                agent {
+                    docker {
+                        image 'registry.pm.emarineonline.com/bmo/drone-node:16.13.1'
+                        reuseNode true
+                    }
+                }
+                steps {
+                    sh "echo global._version=`date +%Y%m%d%H%M` > src/version.js"
+                    sh "/npm_auth"
+                    sh "rm -f yarn.lock"
+                    sh "yarn config set phantomjs_cdnurl http://cnpmjs.org/downloads"
+                    sh "yarn install --production=false"
+                    sh "yarn config set strict-ssl ''"
+                    sh "CI='' yarn build:PROD"
+                }
+            }
+
+            stage('devploy-dev'){
+                when {
+                    branch 'dev'
+                }
+                steps {
+                    sh '''
+                    username=user
+                    serverip=192.168.102.88
+                    dtime=`date "+%Y%m%d%H%M"`
+                    ssh  ${username}@${serverip} "rm  -rf /home/${username}/web/sdk/*"
+                    scp -r ./build/* ${username}@${serverip}:/home/${username}/web/sdk/
+                '''
+                }
+            }
+
+            stage('devploy-deva'){
+                when {
+                    branch 'deva'
+                }
+                steps {
+                    sh '''
+                    username=user
+                    serverip=192.168.102.81
+                    dtime=`date "+%Y%m%d%H%M"`
+                    ssh  ${username}@${serverip} "rm  -rf /home/${username}/web/sdk/*"
+                    scp -r ./build/* ${username}@${serverip}:/home/${username}/web/sdk/
+                '''
+                }
+            }
+
+            stage('devploy-devb'){
+                when {
+                    branch 'devb'
+                }
+                steps {
+                    sh '''
+                    username=root
+                    serverip=192.168.102.200
+                    dtime=`date "+%Y%m%d%H%M"`
+                    ssh  ${username}@${serverip} "rm -rf /data/web/sdk/*"
+                    scp -r ./build/* ${username}@${serverip}:/data/web/sdk/
+                '''
+                }
+            }
+            stage('devploy-uat'){
+                when {
+                    environment name: 'GIT_BRANCH', value: 'origin/uat'
+                }
+                steps {
+                    sh '''
+                    username=root
+                    serverip=192.168.102.202
+                    dtime=`date "+%Y%m%d%H%M"`
+                    ssh  ${username}@${serverip} "rm -rf /data/web/sdk/*"
+                    scp -r ./build/* ${username}@${serverip}:/data/web/sdk/
+                '''
+                }
+            }
+            stage('deploy-sit'){
+                when {
+                    environment name: 'GIT_BRANCH', value: 'origin/sit'
+                }
+               steps {
+                    sh '''
+                    username=user
+                    serverip=192.168.102.83
+                    dtime=`date "+%Y%m%d%H%M"`
+                    ssh  ${username}@${serverip} "rm -rf /home/${username}/web/sdk/*"
+                    scp -r ./build/* ${username}@${serverip}:/home/${username}/web/sdk/
+                '''
+               }
+            }
+
+            stage('deploy-sita'){
+                when {
+                    environment name: 'GIT_BRANCH', value: 'origin/sita'
+                }
+               steps {
+                    sh '''
+                    username=user
+                    serverip=192.168.102.82
+                    dtime=`date "+%Y%m%d%H%M"`
+                    ssh  ${username}@${serverip} "rm -rf /home/${username}/web/sdk/*"
+                    scp -r ./build/* ${username}@${serverip}:/home/${username}/web/sdk/
+                '''
+               }
+            }
+
+            stage('deploy-staging'){
+                when {
+                    environment name: 'GIT_BRANCH', value: 'origin/staging'
+                }
+               steps {
+                    sh '''
+                    username=bwoil
+                    serverip1="161.117.229.98"
+                    dtime=`date "+%Y%m%d%H%M"`
+                    ssh -p 11322 ${username}@${serverip1} "rm -rf /home/${username}/web/sdk/*"
+                    scp -r -P 11322 ./build/* ${username}@${serverip1}:/home/${username}/web/sdk/
+                '''
+               }
+            }
+            stage('deploy-prod'){
+                when {
+                    environment name: 'GIT_BRANCH', value: 'origin/prod'
+                }
+               steps {
+                    sh '''
+                    username=bwoil
+                    serverip1="161.117.229.98"
+                    dtime=`date "+%Y%m%d%H%M"`
+                    ssh -p 10622 ${username}@${serverip1} "rm -rf /home/${username}/web/sdk/*"
+                    scp -r -P 10622 ./build/* ${username}@${serverip1}:/home/${username}/web/sdk/
+                    ssh -p10622 ${username}@${serverip1} "cd /home/bwoil/web&&./tar.sh sdk"
+                    ssh -p10022 ${username}@${serverip1} "cd /etc/ansible&&sudo ansible-playbook sdk.yaml"                   
+
+                '''
+               }
+            }
+        }
+        post {
+               success {
+                   script {
+                        if (GIT_BRANCH == 'dev'){
+                           emailext(
+                              body: devemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com"
+                           )
+                       }
+                        if (GIT_BRANCH == 'deva'){
+                           emailext(
+                              body: devbemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com"
+                           )
+                       }
+                        if (GIT_BRANCH == 'devb'){
+                           emailext(
+                              body: devbemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com"
+                           )
+                       }
+                       if (GIT_BRANCH == 'origin/sit'){
+                           emailext(
+                              body: sitemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com;test@marineonline.com"
+                           )
+                       }
+                        if (GIT_BRANCH == 'origin/sita'){
+                           emailext(
+                              body: sitaemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com;test@marineonline.com"
+                           )
+                       } 
+                       if (GIT_BRANCH == 'origin/uat'){
+                           emailext(
+                              body: uatemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com;test@marineonline.com"
+                           )
+                       }                         
+                      if (GIT_BRANCH == 'origin/staging'){
+                           emailext(
+                              body: stagingemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com;test@marineonline.com;prod@marineonline.com"
+                           )
+                       }
+                       if (GIT_BRANCH == 'origin/prod'){
+                           emailext(
+                              body: prodemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev_ops@marineonline.com"
+                           )
+                       }
+                       
+                   }
+              }
+             failure {
+                 script {
+                        if (GIT_BRANCH == 'dev'){
+                           emailext(
+                              body: devemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com"
+                           )
+                       }
+                        if (GIT_BRANCH == 'deva'){
+                           emailext(
+                              body: devaemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com"
+                           )
+                       }
+                        if (GIT_BRANCH == 'devb'){
+                           emailext(
+                              body: devbemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com"
+                           )
+                       }
+                       if (GIT_BRANCH == 'origin/sit'){
+                           emailext(
+                              body: sitemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com;test@marineonline.com"
+                           )
+                       }
+                        if (GIT_BRANCH == 'origin/sita'){
+                           emailext(
+                              body: sitaemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com;test@marineonline.com"
+                           )
+                       }
+                       if (GIT_BRANCH == 'origin/uat'){
+                           emailext(
+                              body: uatemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com;test@marineonline.com"
+                           )
+                       }                           
+                      if (GIT_BRANCH == 'origin/staging'){
+                           emailext(
+                              body: stagingemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev@marineonline.com;test@marineonline.com;prod@marineonline.com"
+                           )
+                       }
+                       if (GIT_BRANCH == 'origin/prod'){
+                           emailext(
+                              body: prodemailbody,
+                              subject:'【构建通知】 $PROJECT_NAME-$BUILD_TIMESTAMP - Build # $BUILD_NUMBER - $BUILD_STATUS',
+                              mimeType: "text/html",
+                              to: "dev_ops@marineonline.com"
+                           )
+                       }
+                   }
+              }
+        }
+        environment {
+                     devemailbody='''<!DOCTYPE html>    
+<html>    
+<head>    
+<meta charset="UTF-8">    
+<title>${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志</title>    
+</head>    
+<body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"    
+    offset="0">    
+    <table width="95%" cellpadding="0" cellspacing="0"  style="font-size: 11pt; font-family: Tahoma, Arial, Helvetica, sans-serif">    
+        <tr>    
+            本邮件由系统自动发出，无需回复！<br/>            
+            各位同事，大家好，以下为${PROJECT_NAME }项目构建信息</br> 
+            <td><font color="#CC0000">构建结果 - ${BUILD_STATUS}</font></td>   
+        </tr>    
+        <tr>    
+            <td><br />    
+            <b><font color="#0B610B">构建信息</font></b>    
+            <hr size="2" width="100%" align="center" /></td>    
+        </tr>    
+        <tr>    
+            <td>    
+                <ul>    
+                    <li>项目名称： ${PROJECT_NAME}</li>    
+                    <li>构建编号： 第${BUILD_NUMBER}次构建</li>    
+                    <li>触发原因： ${CAUSE}</li>    
+                    <li>构建状态： ${BUILD_STATUS}</li>    
+                    <li>构建分支： ${JOB_BASE_NAME}</li>       
+                    <li>网站URL：  <a href="http://mol.dev.emarineonline.com/marine-sdk">http://mol.dev.emarineonline.com/sdk</a></li>    
+                    <li>项目Url：  <a href="${PROJECT_URL}">${PROJECT_URL}</a></li>   
+                    <li>变更记录:${CHANGES,showPaths=true,showDependencies=true,format="<pre><ul><li>提交ID: %r</li><li>提交人：%a</li><li>提交时间：%d</li><li>提交信息：%m</li><li>提交文件：%p</li></ul></pre>",pathFormat="%p <br />"}</li>
+            </td>    
+        </tr>    
+    </table>    
+</body>    
+</html>
+'''
+                    devaemailbody='''<!DOCTYPE html>    
+<html>    
+<head>    
+<meta charset="UTF-8">    
+<title>${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志</title>    
+</head>    
+<body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"    
+    offset="0">    
+    <table width="95%" cellpadding="0" cellspacing="0"  style="font-size: 11pt; font-family: Tahoma, Arial, Helvetica, sans-serif">    
+        <tr>    
+            本邮件由系统自动发出，无需回复！<br/>            
+            各位同事，大家好，以下为${PROJECT_NAME }项目构建信息</br> 
+            <td><font color="#CC0000">构建结果 - ${BUILD_STATUS}</font></td>   
+        </tr>    
+        <tr>    
+            <td><br />    
+            <b><font color="#0B610B">构建信息</font></b>    
+            <hr size="2" width="100%" align="center" /></td>    
+        </tr>    
+        <tr>    
+            <td>    
+                <ul>    
+                    <li>项目名称： ${PROJECT_NAME}</li>    
+                    <li>构建编号： 第${BUILD_NUMBER}次构建</li>    
+                    <li>触发原因： ${CAUSE}</li>    
+                    <li>构建状态： ${BUILD_STATUS}</li>    
+                    <li>构建分支： ${JOB_BASE_NAME}</li>       
+                    <li>网站URL：  <a href="http://mol.dev-a.emarineonline.com/marine-sdk">http://mol.dev-a.emarineonline.com/sdk</a></li>    
+                    <li>项目Url：  <a href="${PROJECT_URL}">${PROJECT_URL}</a></li>   
+                    <li>变更记录:${CHANGES,showPaths=true,showDependencies=true,format="<pre><ul><li>提交ID: %r</li><li>提交人：%a</li><li>提交时间：%d</li><li>提交信息：%m</li><li>提交文件：%p</li></ul></pre>",pathFormat="%p <br />"}</li>
+            </td>    
+        </tr>    
+    </table>    
+</body>    
+</html>
+'''
+               devbemailbody='''<!DOCTYPE html>    
+<html>    
+<head>    
+<meta charset="UTF-8">    
+<title>${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志</title>    
+</head>    
+<body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"    
+    offset="0">    
+    <table width="95%" cellpadding="0" cellspacing="0"  style="font-size: 11pt; font-family: Tahoma, Arial, Helvetica, sans-serif">    
+        <tr>    
+            本邮件由系统自动发出，无需回复！<br/>            
+            各位同事，大家好，以下为${PROJECT_NAME }项目构建信息</br> 
+            <td><font color="#CC0000">构建结果 - ${BUILD_STATUS}</font></td>   
+        </tr>    
+        <tr>    
+            <td><br />    
+            <b><font color="#0B610B">构建信息</font></b>    
+            <hr size="2" width="100%" align="center" /></td>    
+        </tr>    
+        <tr>    
+            <td>    
+                <ul>    
+                    <li>项目名称： ${PROJECT_NAME}</li>    
+                    <li>构建编号： 第${BUILD_NUMBER}次构建</li>    
+                    <li>触发原因： ${CAUSE}</li>    
+                    <li>构建状态： ${BUILD_STATUS}</li>    
+                    <li>构建分支： ${JOB_BASE_NAME}</li>       
+                    <li>网站URL：  <a href="http://mol.dev-b.emarineonline.com/marine-sdk">http://mol.dev-b.emarineonline.com/sdk</a></li>    
+                    <li>项目Url：  <a href="${PROJECT_URL}">${PROJECT_URL}</a></li>   
+                    <li>变更记录:${CHANGES,showPaths=true,showDependencies=true,format="<pre><ul><li>提交ID: %r</li><li>提交人：%a</li><li>提交时间：%d</li><li>提交信息：%m</li><li>提交文件：%p</li></ul></pre>",pathFormat="%p <br />"}</li>
+            </td>    
+        </tr>    
+    </table>    
+</body>    
+</html>
+'''
+               sitemailbody='''<!DOCTYPE html>    
+<html>    
+<head>    
+<meta charset="UTF-8">    
+<title>${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志</title>    
+</head>    
+<body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"    
+    offset="0">    
+    <table width="95%" cellpadding="0" cellspacing="0"  style="font-size: 11pt; font-family: Tahoma, Arial, Helvetica, sans-serif">    
+        <tr>    
+            本邮件由系统自动发出，无需回复！<br/>            
+            各位同事，大家好，以下为${PROJECT_NAME }项目构建信息</br> 
+            <td><font color="#CC0000">构建结果 - ${BUILD_STATUS}</font></td>   
+        </tr>    
+        <tr>    
+            <td><br />    
+            <b><font color="#0B610B">构建信息</font></b>    
+            <hr size="2" width="100%" align="center" /></td>    
+        </tr>    
+        <tr>    
+            <td>    
+                <ul>    
+                    <li>项目名称： ${PROJECT_NAME}</li>    
+                    <li>构建编号： 第${BUILD_NUMBER}次构建</li>    
+                    <li>触发原因： ${CAUSE}</li>    
+                    <li>构建状态： ${BUILD_STATUS}</li>    
+                    <li>构建分支： sit </li>       
+                    <li>网站URL：  <a href="http://mol.sit.emarineonline.com/marine-sdk">http://mol.sit.emarineonline.com/sdk</a></li>    
+                    <li>项目Url：  <a href="${PROJECT_URL}">${PROJECT_URL}</a></li>   
+                    <li>变更记录:${CHANGES,showPaths=true,showDependencies=true,format="<pre><ul><li>提交ID: %r</li><li>提交人：%a</li><li>提交时间：%d</li><li>提交信息：%m</li><li>提交文件：%p</li></ul></pre>",pathFormat="%p <br />"}</li>
+            </td>    
+        </tr>    
+    </table>    
+</body>    
+</html>
+'''
+            sitaemailbody='''<!DOCTYPE html>    
+<html>    
+<head>    
+<meta charset="UTF-8">    
+<title>${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志</title>    
+</head>    
+<body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"    
+    offset="0">    
+    <table width="95%" cellpadding="0" cellspacing="0"  style="font-size: 11pt; font-family: Tahoma, Arial, Helvetica, sans-serif">    
+        <tr>    
+            本邮件由系统自动发出，无需回复！<br/>            
+            各位同事，大家好，以下为${PROJECT_NAME }项目构建信息</br> 
+            <td><font color="#CC0000">构建结果 - ${BUILD_STATUS}</font></td>   
+        </tr>    
+        <tr>    
+            <td><br />    
+            <b><font color="#0B610B">构建信息</font></b>    
+            <hr size="2" width="100%" align="center" /></td>    
+        </tr>    
+        <tr>    
+            <td>    
+                <ul>    
+                    <li>项目名称： ${PROJECT_NAME}</li>    
+                    <li>构建编号： 第${BUILD_NUMBER}次构建</li>    
+                    <li>触发原因： ${CAUSE}</li>    
+                    <li>构建状态： ${BUILD_STATUS}</li>    
+                    <li>构建分支： sita </li>       
+                    <li>网站URL：  <a href="http://mol.sit-a.emarineonline.com/marine-sdk">http://mol.sit-a.emarineonline.com/sdk</a></li>    
+                    <li>项目Url：  <a href="${PROJECT_URL}">${PROJECT_URL}</a></li>   
+                    <li>变更记录:${CHANGES,showPaths=true,showDependencies=true,format="<pre><ul><li>提交ID: %r</li><li>提交人：%a</li><li>提交时间：%d</li><li>提交信息：%m</li><li>提交文件：%p</li></ul></pre>",pathFormat="%p <br />"}</li>
+            </td>    
+        </tr>    
+    </table>    
+</body>    
+</html>
+'''
+               uatemailbody='''<!DOCTYPE html>    
+<html>    
+<head>    
+<meta charset="UTF-8">    
+<title>${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志</title>    
+</head>    
+<body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"    
+    offset="0">    
+    <table width="95%" cellpadding="0" cellspacing="0"  style="font-size: 11pt; font-family: Tahoma, Arial, Helvetica, sans-serif">    
+        <tr>    
+            本邮件由系统自动发出，无需回复！<br/>            
+            各位同事，大家好，以下为${PROJECT_NAME }项目构建信息</br> 
+            <td><font color="#CC0000">构建结果 - ${BUILD_STATUS}</font></td>   
+        </tr>    
+        <tr>    
+            <td><br />    
+            <b><font color="#0B610B">构建信息</font></b>    
+            <hr size="2" width="100%" align="center" /></td>    
+        </tr>    
+        <tr>    
+            <td>    
+                <ul>    
+                    <li>项目名称： ${PROJECT_NAME}</li>    
+                    <li>构建编号： 第${BUILD_NUMBER}次构建</li>    
+                    <li>触发原因： ${CAUSE}</li>    
+                    <li>构建状态： ${BUILD_STATUS}</li>    
+                    <li>构建分支： uat </li>       
+                    <li>网站URL：  <a href="http://mol.uat.emarineonline.com/marine-sdk">http://mol.uat.emarineonline.com/sdk</a></li>    
+                    <li>项目Url：  <a href="${PROJECT_URL}">${PROJECT_URL}</a></li>   
+                    <li>变更记录:${CHANGES,showPaths=true,showDependencies=true,format="<pre><ul><li>提交ID: %r</li><li>提交人：%a</li><li>提交时间：%d</li><li>提交信息：%m</li><li>提交文件：%p</li></ul></pre>",pathFormat="%p <br />"}</li>
+            </td>    
+        </tr>    
+    </table>    
+</body>    
+</html>
+'''
+    stagingemailbody='''<!DOCTYPE html>    
+<html>    
+<head>    
+<meta charset="UTF-8">    
+<title>${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志</title>    
+</head>    
+<body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"    
+    offset="0">    
+    <table width="95%" cellpadding="0" cellspacing="0"  style="font-size: 11pt; font-family: Tahoma, Arial, Helvetica, sans-serif">    
+        <tr>    
+            本邮件由系统自动发出，无需回复！<br/>            
+            各位同事，大家好，以下为${PROJECT_NAME }项目构建信息</br> 
+            <td><font color="#CC0000">构建结果 - ${BUILD_STATUS}</font></td>   
+        </tr>    
+        <tr>    
+            <td><br />    
+            <b><font color="#0B610B">构建信息</font></b>    
+            <hr size="2" width="100%" align="center" /></td>    
+        </tr>    
+        <tr>    
+            <td>    
+                <ul>    
+                    <li>项目名称： ${PROJECT_NAME}</li>    
+                    <li>构建编号： 第${BUILD_NUMBER}次构建</li>    
+                    <li>触发原因： ${CAUSE}</li>    
+                    <li>构建状态： ${BUILD_STATUS}</li>    
+                    <li>构建分支： staging </li>       
+                    <li>网站URL：  <a href="https://staging.emarineonline.com.cn/marine-sdk">https://staging.emarineonline.com.cn/sdk</a></li>    
+                    <li>项目Url：  <a href="${PROJECT_URL}">${PROJECT_URL}</a></li>   
+                    <li>变更记录:${CHANGES,showPaths=true,showDependencies=true,format="<pre><ul><li>提交ID: %r</li><li>提交人：%a</li><li>提交时间：%d</li><li>提交信息：%m</li><li>提交文件：%p</li></ul></pre>",pathFormat="%p <br />"}</li>
+            </td>    
+        </tr>    
+    </table>    
+</body>    
+</html>
+'''
+        prodemailbody='''<!DOCTYPE html>    
+<html>    
+<head>    
+<meta charset="UTF-8">    
+<title>${ENV, var="JOB_NAME"}-第${BUILD_NUMBER}次构建日志</title>    
+</head>    
+<body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"    
+    offset="0">    
+    <table width="95%" cellpadding="0" cellspacing="0"  style="font-size: 11pt; font-family: Tahoma, Arial, Helvetica, sans-serif">    
+        <tr>    
+            本邮件由系统自动发出，无需回复！<br/>            
+            各位同事，大家好，以下为${PROJECT_NAME }项目构建信息</br> 
+            <td><font color="#CC0000">构建结果 - ${BUILD_STATUS}</font></td>   
+        </tr>    
+        <tr>    
+            <td><br />    
+            <b><font color="#0B610B">构建信息</font></b>    
+            <hr size="2" width="100%" align="center" /></td>    
+        </tr>    
+        <tr>    
+            <td>    
+                <ul>    
+                    <li>项目名称： ${PROJECT_NAME}</li>    
+                    <li>构建编号： 第${BUILD_NUMBER}次构建</li>    
+                    <li>触发原因： ${CAUSE}</li>    
+                    <li>构建状态： ${BUILD_STATUS}</li>    
+                    <li>构建分支： prod </li>       
+                    <li>网站URL：  <a href="https://mol.demo.marineonline.com/marine-sdk">https://mol.demo.marineonline.com/sdk</a></li>    
+                    <li>项目Url：  <a href="${PROJECT_URL}">${PROJECT_URL}</a></li>   
+                    <li>变更记录:${CHANGES,showPaths=true,showDependencies=true,format="<pre><ul><li>提交ID: %r</li><li>提交人：%a</li><li>提交时间：%d</li><li>提交信息：%m</li><li>提交文件：%p</li></ul></pre>",pathFormat="%p <br />"}</li>
+            </td>    
+        </tr>    
+    </table>    
+</body>    
+</html>
+'''
+        }
+}
